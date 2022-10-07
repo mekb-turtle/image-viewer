@@ -35,7 +35,11 @@ bool parse_image(struct image *img) {
 	for (uint32_t y = 0; y < img->height; ++y)
 	for (uint32_t x = 0; x < img->width;  ++x) {
 		int a, r, g, b;
-		if ((r = fgetc(img->fp)) < 0 || (g = fgetc(img->fp)) < 0 || (b = fgetc(img->fp)) < 0 || (a = fgetc(img->fp)) < 0) {
+		r = fgetc(img->fp); fgetc(img->fp);
+		g = fgetc(img->fp); fgetc(img->fp);
+		b = fgetc(img->fp); fgetc(img->fp);
+		a = fgetc(img->fp); fgetc(img->fp);
+		if (a < 0) {
 			free(img->pixels);
 			return 0;
 		}
@@ -102,6 +106,7 @@ int main(int argc, char* argv[]) {
 	FILE *fp;
 	if (filename[0] == '-' && filename[1] == '\0') {
 		fp = stdin;
+		filename = "stdin";
 	} else {
 		fp = fopen(filename, "r");
 		if (!fp) { eprintf("fopen: %s: %s\n", filename, strerr); return errno; }
@@ -110,7 +115,12 @@ int main(int argc, char* argv[]) {
 	if (parse_image(&image) == 0) {
 		eprintf("Failed reading farbfeld image\n"); return 1;
 	}
-	SDL_Window *win = SDL_CreateWindow("Image",
+	char *title = malloc(16 + strlen(filename));
+	if (!title) {
+		eprintf("malloc: %s\n", strerr); return 0;
+	}
+	sprintf(title, "Image: %s", filename);
+	SDL_Window *win = SDL_CreateWindow(title,
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		image.width, image.height, 0);
 	if (create_render(&image, win) == 0) {
@@ -123,13 +133,10 @@ int main(int argc, char* argv[]) {
 	display(&image);
 	SDL_Event event;
 	while (!quit_) {
-		SDL_WaitEvent(&event);
+		if (!SDL_PollEvent(&event)) continue;
 		switch (event.type) {
 			case SDL_QUIT:
 				quit_ = 1;
-				break;
-			default:
-				display(&image);
 				break;
 		}
 	}
