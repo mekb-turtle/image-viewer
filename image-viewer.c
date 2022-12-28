@@ -83,7 +83,7 @@ void quit() {
 }
 int usage(char *argv0) {
 	eprintf("\
-Usage: %s [filename]\n", argv0);
+Usage: %s [filename] ([window title])\n", argv0);
 	return 2;
 }
 int main(int argc, char* argv[]) {
@@ -93,12 +93,15 @@ int main(int argc, char* argv[]) {
 	}
 	bool flag_done = 0;
 	char *filename = NULL;
+	char *title = NULL;
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] == '-' && argv[i][1] != '\0' && !flag_done) {
 			if (argv[i][1] == '-' && argv[i][2] == '\0') flag_done = 1; else // -- denotes end of flags
 			INVALID;
+		} else if (filename) {
+			if (title) INVALID;
+			title = argv[i];
 		} else {
-			if (filename) INVALID;
 			filename = argv[i];
 		}
 	}
@@ -115,11 +118,13 @@ int main(int argc, char* argv[]) {
 	if (parse_image(&image) == 0) {
 		eprintf("Failed reading farbfeld image\n"); return 1;
 	}
-	char *title = malloc(16 + strlen(filename));
+	if (!title) {
+	title = malloc(16 + strlen(filename));
 	if (!title) {
 		eprintf("malloc: %s\n", strerr); return 0;
 	}
 	sprintf(title, "Image: %s", filename);
+	}
 	SDL_Window *win = SDL_CreateWindow(title,
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		image.width, image.height, 0);
